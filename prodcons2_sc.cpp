@@ -204,7 +204,7 @@ void funcion_hebra_consumidora( ProdCons2SC * monitor, int num_hebra)
 int main()
 {
     cout << "-------------------------------------------------------------------------------" << endl
-         << "Problema de los productores-consumidores (1 prod/cons, Monitor SC, buffer FIFO). " << endl
+         << "Problema de los productores-consumidores (varios prod/cons, Monitor SC, buffer FIFO). " << endl
          << "-------------------------------------------------------------------------------" << endl
          << flush ;
 
@@ -230,6 +230,8 @@ int main()
     for (int i = 0; i < num_consumidores; i++)
         hebra_consumidores[i].join();
 
+    for (int i = 0; i < num_productores; i++)
+        cout << "Hebra " << i << " produce " << producidos[i] << endl;
 
     // comprobar que cada item se ha producido y consumido exactamente una vez
     test_contadores() ;
