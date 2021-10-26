@@ -108,7 +108,9 @@ private:
     num_celdas_total = 10;   //  núm. de entradas del buffer
     int                        // variables permanentes
     buffer[num_celdas_total],//  buffer de tamaño fijo, con los datos
-    primera_libre;         //  indice de celda de la próxima inserción
+    primera_libre,         //  indice de celda de la próxima inserción
+    primera_ocupada,
+    celdas_ocupadas;
 
     CondVar        // colas condicion:
     ocupadas,                //  cola donde espera el consumidor (n>0)
@@ -124,6 +126,8 @@ public:                    // constructor y métodos públicos
 ProdCons3SC::ProdCons3SC(  )
 {
     primera_libre = 0 ;
+    primera_ocupada = 0;
+    celdas_ocupadas = 0;
     ocupadas = newCondVar();
     libres = newCondVar();
 
@@ -134,13 +138,14 @@ ProdCons3SC::ProdCons3SC(  )
 int ProdCons3SC::leer(  )
 {
 
-    while ( primera_libre == 0 )
+    while ( celdas_ocupadas == 0 )
         ocupadas.wait();
 
     // hacer la operación de lectura, actualizando estado del monitor
-    assert(0 < primera_libre);
-    const int valor = buffer[primera_libre - 1];
-    primera_libre--;
+    assert(0 < celdas_ocupadas);
+    const int valor = buffer[primera_ocupada];
+    primera_ocupada = (primera_ocupada + 1) % num_celdas_total;
+    celdas_ocupadas--;
 
     // señalar al productor que hay un hueco libre, por si está esperando
     libres.signal();
@@ -153,15 +158,16 @@ int ProdCons3SC::leer(  )
 void ProdCons3SC::escribir( int valor )
 {
 
-    while ( primera_libre == num_celdas_total )
+    while ( celdas_ocupadas == num_celdas_total )
         libres.wait();
 
     //cout << "escribir: ocup == " << num_celdas_ocupadas << ", total == " << num_celdas_total << endl ;
-    assert( primera_libre < num_celdas_total );
+    assert( celdas_ocupadas < num_celdas_total );
 
     // hacer la operación de inserción, actualizando estado del monitor
     buffer[primera_libre] = valor ;
-    primera_libre++;
+    primera_libre = (primera_libre + 1) % num_celdas_total;
+    celdas_ocupadas++;
 
     // señalar al consumidor que ya hay una celda ocupada (por si esta esperando)
     ocupadas.signal();
@@ -192,7 +198,7 @@ void funcion_hebra_consumidora( MRef<ProdCons3SC>monitor, int num_hebra)
 int main()
 {
     cout << "-------------------------------------------------------------------------------" << endl
-         << "Problema de los productores-consumidores (varios prod/cons, Monitor SU, buffer LIFO). " << endl
+         << "Problema de los productores-consumidores (varios prod/cons, Monitor SU, buffer FIFO). " << endl
          << "-------------------------------------------------------------------------------" << endl
          << flush ;
 
